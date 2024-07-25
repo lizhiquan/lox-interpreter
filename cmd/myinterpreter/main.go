@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/codecrafters-io/interpreter-starter-go/lox"
 )
 
 func main() {
@@ -25,9 +27,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	if len(fileContents) > 0 {
-		panic("Scanner not implemented")
-	} else {
-		fmt.Println("EOF  null") // Placeholder, remove this line when implementing the scanner
+	scanner := lox.NewScanner(string(fileContents))
+	tokens := scanner.ScanTokens()
+	for _, token := range tokens {
+		fmt.Println(token)
 	}
 }
