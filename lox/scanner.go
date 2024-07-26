@@ -2,6 +2,8 @@ package lox
 
 import (
 	"fmt"
+	"strconv"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -103,9 +105,36 @@ func (s *Scanner) scanToken() error {
 	case '"':
 		return s.string()
 	default:
+		if unicode.IsDigit(r) {
+			return s.number()
+		}
 		return fmt.Errorf("[line %d] Error: Unexpected character: %s", s.line, string(r))
 	}
 
+	return nil
+}
+
+func (s *Scanner) number() error {
+	for unicode.IsDigit(s.peek()) {
+		s.advance()
+	}
+
+	// fractional part
+	if s.peek() == '.' && unicode.IsDigit(s.peekNext()) {
+		// consume "."
+		s.advance()
+
+		for unicode.IsDigit(s.peek()) {
+			s.advance()
+		}
+	}
+
+	value, err := strconv.ParseFloat(s.source[s.start:s.current], 64)
+	if err != nil {
+		return fmt.Errorf("[line %d] Error: Failed to parse number: %s", s.line, s.source[s.start:s.current])
+	}
+
+	s.addTokenLiteral(NUMBER, value)
 	return nil
 }
 
@@ -135,6 +164,15 @@ func (s *Scanner) peek() rune {
 	}
 
 	r, _ := utf8.DecodeRuneInString(s.source[s.current:])
+	return r
+}
+
+func (s *Scanner) peekNext() rune {
+	if s.current+1 >= len(s.source) {
+		return 0
+	}
+
+	r, _ := utf8.DecodeRuneInString(s.source[s.current+1:])
 	return r
 }
 

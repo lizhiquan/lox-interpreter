@@ -65,8 +65,18 @@ type Token struct {
 }
 
 func (t Token) String() string {
-	if t.Literal == nil {
-		t.Literal = "null"
+	return fmt.Sprintf("%s %s %s", t.Type, t.Lexeme, t.formattedLiteral())
+}
+
+func (t *Token) formattedLiteral() string {
+	if val, ok := t.Literal.(float64); ok {
+		if val == float64(int(val)) {
+			return fmt.Sprintf("%.1f", val)
+		}
+		return fmt.Sprint(val)
 	}
-	return fmt.Sprintf("%s %s %s", t.Type, t.Lexeme, t.Literal)
+	if t.Literal == nil {
+		return "null"
+	}
+	return fmt.Sprintf("%v", t.Literal)
 }
