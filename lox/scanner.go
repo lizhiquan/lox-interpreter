@@ -100,10 +100,32 @@ func (s *Scanner) scanToken() error {
 		break
 	case '\n':
 		s.line++
+	case '"':
+		return s.string()
 	default:
 		return fmt.Errorf("[line %d] Error: Unexpected character: %s", s.line, string(r))
 	}
 
+	return nil
+}
+
+func (s *Scanner) string() error {
+	for s.peek() != '"' && !s.isAtEnd() {
+		if s.peek() == '\n' {
+			s.line++
+		}
+		s.advance()
+	}
+
+	if s.isAtEnd() {
+		return fmt.Errorf("[line %d] Error: Unterminated string.", s.line)
+	}
+
+	// closing "
+	s.advance()
+
+	value := s.source[s.start+1 : s.current-1]
+	s.addTokenLiteral(STRING, value)
 	return nil
 }
 
