@@ -108,10 +108,46 @@ func (s *Scanner) scanToken() error {
 		if unicode.IsDigit(r) {
 			return s.number()
 		}
+		if s.isAlpha(r) {
+			s.identifier()
+			break
+		}
 		return fmt.Errorf("[line %d] Error: Unexpected character: %s", s.line, string(r))
 	}
 
 	return nil
+}
+
+var keywords = map[string]TokenType{
+	"and":    AND,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"fun":    FUN,
+	"if":     IF,
+	"nil":    NIL,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"super":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
+}
+
+func (s *Scanner) identifier() {
+	for s.isAlphaNumeric(s.peek()) {
+		s.advance()
+	}
+
+	text := s.source[s.start:s.current]
+	tokenType, ok := keywords[text]
+	if !ok {
+		tokenType = IDENTIFIER
+	}
+	s.addToken(tokenType)
 }
 
 func (s *Scanner) number() error {
@@ -174,6 +210,14 @@ func (s *Scanner) peekNext() rune {
 
 	r, _ := utf8.DecodeRuneInString(s.source[s.current+1:])
 	return r
+}
+
+func (s *Scanner) isAlpha(r rune) bool {
+	return unicode.IsLetter(r) || r == '_'
+}
+
+func (s *Scanner) isAlphaNumeric(r rune) bool {
+	return s.isAlpha(r) || unicode.IsDigit(r)
 }
 
 func (s *Scanner) match(expected rune) bool {
