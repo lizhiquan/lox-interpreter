@@ -1,7 +1,7 @@
 package lox
 
 import (
-	"log/slog"
+	"fmt"
 	"unicode/utf8"
 )
 
@@ -11,6 +11,7 @@ type Scanner struct {
 	start   int // the first character in the lexeme being scanned
 	current int // the character currently being considered
 	line    int // tracks what source line `current` is on
+	errs    []error
 }
 
 func NewScanner(source string) *Scanner {
@@ -23,20 +24,22 @@ func NewScanner(source string) *Scanner {
 	}
 }
 
-func (s *Scanner) ScanTokens() []Token {
+func (s *Scanner) ScanTokens() ([]Token, []error) {
 	for !s.isAtEnd() {
 		s.start = s.current
-		s.scanToken()
+		if err := s.scanToken(); err != nil {
+			s.errs = append(s.errs, err)
+		}
 	}
 	s.tokens = append(s.tokens, Token{Type: EOF, Line: s.line})
-	return s.tokens
+	return s.tokens, s.errs
 }
 
 func (s *Scanner) isAtEnd() bool {
 	return s.current >= len(s.source)
 }
 
-func (s *Scanner) scanToken() {
+func (s *Scanner) scanToken() error {
 	r := s.advance()
 	switch r {
 	case '(':
@@ -94,12 +97,14 @@ func (s *Scanner) scanToken() {
 		}
 	case ' ', '\r', '\t':
 		// ignore whitespace
-		return
+		break
 	case '\n':
 		s.line++
 	default:
-		slog.Error("Unexpected character.", "char", r, "line", s.line)
+		return fmt.Errorf("[line %d] Error: Unexpected character: %s", s.line, string(r))
 	}
+
+	return nil
 }
 
 func (s *Scanner) peek() rune {

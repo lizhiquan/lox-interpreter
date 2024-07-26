@@ -28,8 +28,15 @@ func main() {
 	}
 
 	scanner := lox.NewScanner(string(fileContents))
-	tokens := scanner.ScanTokens()
+	tokens, errs := scanner.ScanTokens()
+	for _, err := range errs {
+		fmt.Fprintln(os.Stderr, err)
+	}
 	for _, token := range tokens {
 		fmt.Println(token)
+	}
+
+	if len(errs) > 0 {
+		os.Exit(65)
 	}
 }
