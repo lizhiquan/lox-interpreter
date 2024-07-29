@@ -198,7 +198,11 @@ func (p *Parser) previous() Token {
 }
 
 func (p *Parser) error(token Token, message string) error {
-	return fmt.Errorf("Error: %s", message)
+	if token.Type == EOF {
+		return fmt.Errorf("[line %d] Error at end: %s", token.Line, message)
+	}
+
+	return fmt.Errorf("[line %d] Error at '%s': %s", token.Line, token.Lexeme, message)
 }
 
 func (p *Parser) synchronize() {
