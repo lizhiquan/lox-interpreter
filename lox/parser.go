@@ -144,7 +144,7 @@ func (p *Parser) primary() (Expr, error) {
 			return nil, err
 		}
 
-		if _, err := p.consume(RIGHT_PAREN, "Expect ')' after expression."); err != nil {
+		if _, err := p.consume(RIGHT_PAREN, "Unmatched parentheses."); err != nil {
 			return nil, err
 		}
 
@@ -198,11 +198,7 @@ func (p *Parser) previous() Token {
 }
 
 func (p *Parser) error(token Token, message string) error {
-	if token.Type == EOF {
-		return fmt.Errorf("[line %d] Error at end: %s", token.Line, message)
-	}
-
-	return fmt.Errorf("[line %d] Error at '%s': %s", token.Line, token.Lexeme, message)
+	return fmt.Errorf("Error: %s", message)
 }
 
 func (p *Parser) synchronize() {

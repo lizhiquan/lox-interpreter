@@ -48,7 +48,7 @@ func main() {
 		expr, err := parser.Parse()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
-			os.Exit(1)
+			os.Exit(65)
 		}
 
 		printer := lox.AstPrinter{}
