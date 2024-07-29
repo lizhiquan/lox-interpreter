@@ -245,6 +245,11 @@ func (s *Scanner) addToken(tokenType TokenType) {
 }
 
 func (s *Scanner) addTokenLiteral(tokenType TokenType, literal any) {
-	token := Token{Type: tokenType, Lexeme: s.source[s.start:s.current], Literal: literal, Line: s.line}
+	token := Token{
+		Type:    tokenType,
+		Lexeme:  s.source[s.start:s.current],
+		Literal: NewLiteral(literal),
+		Line:    s.line,
+	}
 	s.tokens = append(s.tokens, token)
 }

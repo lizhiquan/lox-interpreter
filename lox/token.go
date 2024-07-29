@@ -60,23 +60,34 @@ const (
 type Token struct {
 	Type    TokenType
 	Lexeme  string
-	Literal any
+	Literal Literal
 	Line    int
 }
 
 func (t Token) String() string {
-	return fmt.Sprintf("%s %s %s", t.Type, t.Lexeme, t.formattedLiteral())
+	return fmt.Sprintf("%s %s %s", t.Type, t.Lexeme, t.Literal)
 }
 
-func (t *Token) formattedLiteral() string {
-	if val, ok := t.Literal.(float64); ok {
+type Literal struct {
+	Value any
+}
+
+func NewLiteral(value any) Literal {
+	return Literal{Value: value}
+}
+
+func (l Literal) String() string {
+	if l.Value == nil {
+		return "null"
+	}
+
+	if val, ok := l.Value.(float64); ok {
 		if val == float64(int(val)) {
 			return fmt.Sprintf("%.1f", val)
 		}
+
 		return fmt.Sprint(val)
 	}
-	if t.Literal == nil {
-		return "null"
-	}
-	return fmt.Sprintf("%v", t.Literal)
+
+	return fmt.Sprintf("%v", l.Value)
 }

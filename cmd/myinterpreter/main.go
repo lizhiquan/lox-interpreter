@@ -15,7 +15,7 @@ func main() {
 
 	command := os.Args[1]
 
-	if command != "tokenize" {
+	if command != "tokenize" && command != "parse" {
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
 	}
@@ -29,14 +29,29 @@ func main() {
 
 	scanner := lox.NewScanner(string(fileContents))
 	tokens, errs := scanner.ScanTokens()
-	for _, err := range errs {
-		fmt.Fprintln(os.Stderr, err)
-	}
-	for _, token := range tokens {
-		fmt.Println(token)
-	}
 
-	if len(errs) > 0 {
-		os.Exit(65)
+	switch command {
+	case "tokenize":
+		for _, err := range errs {
+			fmt.Fprintln(os.Stderr, err)
+		}
+		for _, token := range tokens {
+			fmt.Println(token)
+		}
+
+		if len(errs) > 0 {
+			os.Exit(65)
+		}
+
+	case "parse":
+		parser := lox.NewParser(tokens)
+		expr, err := parser.Parse()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(1)
+		}
+
+		printer := lox.AstPrinter{}
+		fmt.Println(printer.Print(expr))
 	}
 }
