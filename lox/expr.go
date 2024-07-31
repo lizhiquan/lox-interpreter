@@ -13,7 +13,7 @@ package lox
 //                | "+"  | "-"  | "*" | "/" ;
 
 type Expr interface {
-	accept(visitor exprVisitor) any
+	accept(visitor exprVisitor) (any, error)
 }
 
 type BinaryExpr struct {
@@ -22,7 +22,7 @@ type BinaryExpr struct {
 	Right    Expr
 }
 
-func (expr *BinaryExpr) accept(visitor exprVisitor) any {
+func (expr *BinaryExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitBinaryExpr(expr)
 }
 
@@ -30,7 +30,7 @@ type GroupingExpr struct {
 	Expression Expr
 }
 
-func (expr *GroupingExpr) accept(visitor exprVisitor) any {
+func (expr *GroupingExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitGroupingExpr(expr)
 }
 
@@ -38,7 +38,7 @@ type LiteralExpr struct {
 	Value Literal
 }
 
-func (expr *LiteralExpr) accept(visitor exprVisitor) any {
+func (expr *LiteralExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitLiteralExpr(expr)
 }
 
@@ -47,13 +47,13 @@ type UnaryExpr struct {
 	Right    Expr
 }
 
-func (expr *UnaryExpr) accept(visitor exprVisitor) any {
+func (expr *UnaryExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitUnaryExpr(expr)
 }
 
 type exprVisitor interface {
-	visitBinaryExpr(expr *BinaryExpr) any
-	visitGroupingExpr(expr *GroupingExpr) any
-	visitLiteralExpr(expr *LiteralExpr) any
-	visitUnaryExpr(expr *UnaryExpr) any
+	visitBinaryExpr(expr *BinaryExpr) (any, error)
+	visitGroupingExpr(expr *GroupingExpr) (any, error)
+	visitLiteralExpr(expr *LiteralExpr) (any, error)
+	visitUnaryExpr(expr *UnaryExpr) (any, error)
 }

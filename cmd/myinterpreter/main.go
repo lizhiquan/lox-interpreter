@@ -15,7 +15,7 @@ func main() {
 
 	command := os.Args[1]
 
-	if command != "tokenize" && command != "parse" {
+	if command != "tokenize" && command != "parse" && command != "evaluate" {
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
 	}
@@ -53,5 +53,22 @@ func main() {
 
 		printer := lox.AstPrinter{}
 		fmt.Println(printer.Print(expr))
+
+	case "evaluate":
+		parser := lox.NewParser(tokens)
+		expr, err := parser.Parse()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(65)
+		}
+
+		var interpreter lox.Interpreter
+		val, err := interpreter.Interpret(expr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(70)
+		}
+
+		fmt.Println(val)
 	}
 }
