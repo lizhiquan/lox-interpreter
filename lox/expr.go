@@ -22,6 +22,10 @@ type BinaryExpr struct {
 	Right    Expr
 }
 
+func NewBinaryExpr(left Expr, operator Token, right Expr) *BinaryExpr {
+	return &BinaryExpr{Left: left, Operator: operator, Right: right}
+}
+
 func (expr *BinaryExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitBinaryExpr(expr)
 }
@@ -30,12 +34,20 @@ type GroupingExpr struct {
 	Expression Expr
 }
 
+func NewGroupingExpr(expression Expr) *GroupingExpr {
+	return &GroupingExpr{Expression: expression}
+}
+
 func (expr *GroupingExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitGroupingExpr(expr)
 }
 
 type LiteralExpr struct {
 	Value Literal
+}
+
+func NewLiteralExpr(value Literal) *LiteralExpr {
+	return &LiteralExpr{Value: value}
 }
 
 func (expr *LiteralExpr) accept(visitor exprVisitor) (any, error) {
@@ -47,8 +59,37 @@ type UnaryExpr struct {
 	Right    Expr
 }
 
+func NewUnaryExpr(operator Token, right Expr) *UnaryExpr {
+	return &UnaryExpr{Operator: operator, Right: right}
+}
+
 func (expr *UnaryExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitUnaryExpr(expr)
+}
+
+type VariableExpr struct {
+	Name Token
+}
+
+func NewVariableExpr(name Token) *VariableExpr {
+	return &VariableExpr{Name: name}
+}
+
+func (expr *VariableExpr) accept(visitor exprVisitor) (any, error) {
+	return visitor.visitVariableExpr(expr)
+}
+
+type AssignExpr struct {
+	Name  Token
+	Value Expr
+}
+
+func NewAssignExpr(name Token, value Expr) *AssignExpr {
+	return &AssignExpr{Name: name, Value: value}
+}
+
+func (expr *AssignExpr) accept(visitor exprVisitor) (any, error) {
+	return visitor.visitAssignExpr(expr)
 }
 
 type exprVisitor interface {
@@ -56,4 +97,6 @@ type exprVisitor interface {
 	visitGroupingExpr(expr *GroupingExpr) (any, error)
 	visitLiteralExpr(expr *LiteralExpr) (any, error)
 	visitUnaryExpr(expr *UnaryExpr) (any, error)
+	visitVariableExpr(expr *VariableExpr) (any, error)
+	visitAssignExpr(expr *AssignExpr) (any, error)
 }

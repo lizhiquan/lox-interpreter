@@ -43,32 +43,32 @@ func main() {
 			os.Exit(65)
 		}
 
-	case "parse":
-		parser := lox.NewParser(tokens)
-		expr, err := parser.Parse()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			os.Exit(65)
-		}
+	// case "parse":
+	// 	parser := lox.NewParser(tokens)
+	// 	expr, err := parser.Parse()
+	// 	if err != nil {
+	// 		fmt.Fprintln(os.Stderr, err)
+	// 		os.Exit(65)
+	// 	}
 
-		printer := lox.AstPrinter{}
-		fmt.Println(printer.Print(expr))
+	// 	printer := lox.AstPrinter{}
+	// 	fmt.Println(printer.Print(expr))
 
 	case "evaluate":
 		parser := lox.NewParser(tokens)
-		expr, err := parser.Parse()
+		stmts, err := parser.Parse()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 			os.Exit(65)
 		}
 
-		var interpreter lox.Interpreter
-		val, err := interpreter.Interpret(expr)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+		interpreter := lox.NewInterpreter()
+		errs := interpreter.Interpret(stmts)
+		if len(errs) > 0 {
+			for _, err := range errs {
+				fmt.Fprintln(os.Stderr, err)
+			}
 			os.Exit(70)
 		}
-
-		fmt.Println(val)
 	}
 }

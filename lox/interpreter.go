@@ -1,20 +1,29 @@
 package lox
 
-import "fmt"
+import (
+	"fmt"
+)
 
-type Interpreter struct{}
+type Interpreter struct {
+	environment *Environment
+}
 
-func (i *Interpreter) Interpret(expr Expr) (string, error) {
-	val, err := i.evaluate(expr)
-	if err != nil {
-		return "", err
+func NewInterpreter() *Interpreter {
+	return &Interpreter{
+		environment: NewEnvironment(),
+	}
+}
+
+func (i *Interpreter) Interpret(statements []Stmt) []error {
+	var errs []error
+
+	for _, stmt := range statements {
+		if err := i.execute(stmt); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
-	if val == nil {
-		return "nil", nil
-	}
-
-	return fmt.Sprint(val), nil
+	return errs
 }
 
 var _ exprVisitor = (*Interpreter)(nil)
@@ -115,8 +124,86 @@ func (i *Interpreter) visitUnaryExpr(expr *UnaryExpr) (any, error) {
 	}
 }
 
+func (i *Interpreter) visitVariableExpr(expr *VariableExpr) (any, error) {
+	return i.environment.Get(expr.Name)
+}
+
 func (i *Interpreter) evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
+}
+
+var _ stmtVisitor = (*Interpreter)(nil)
+
+func (i *Interpreter) visitExprStmt(stmt *ExprStmt) (any, error) {
+	_, err := i.evaluate(stmt.Expression)
+	return nil, err
+}
+
+func (i *Interpreter) visitPrintStmt(stmt *PrintStmt) (any, error) {
+	val, err := i.evaluate(stmt.Expression)
+	if err != nil {
+		return nil, err
+	}
+
+	if val == nil {
+		val = "nil"
+	}
+
+	fmt.Println(val)
+	return nil, nil
+}
+
+func (i *Interpreter) visitVarDeclStmt(stmt *VarDeclStmt) (any, error) {
+	var value any
+	if stmt.Initializer != nil {
+		var err error
+		value, err = i.evaluate(stmt.Initializer)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	i.environment.Define(stmt.Name.Lexeme, value)
+	return nil, nil
+}
+
+func (i *Interpreter) visitAssignExpr(expr *AssignExpr) (any, error) {
+	value, err := i.evaluate(expr.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := i.environment.Assign(expr.Name, value); err != nil {
+		return nil, err
+	}
+
+	return value, nil
+}
+
+func (i *Interpreter) visitBlockStmt(stmt *BlockStmt) (any, error) {
+	err := i.executeBlock(stmt.Statements, NewEnvironmentWithEnclosing(i.environment))
+	return nil, err
+}
+
+func (i *Interpreter) execute(stmt Stmt) error {
+	_, err := stmt.accept(i)
+	return err
+}
+
+func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {
+	previous := i.environment
+	defer func() {
+		i.environment = previous
+	}()
+
+	i.environment = environment
+	for _, stmt := range statements {
+		if err := i.execute(stmt); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (i *Interpreter) isTruthy(value any) bool {
@@ -144,17 +231,4 @@ func (i *Interpreter) checkNumberOperands(operator Token, left, right any) error
 		}
 	}
 	return NewRuntimeError(operator, "Operands must be numbers.")
-}
-
-type RuntimeError struct {
-	token   Token
-	message string
-}
-
-func NewRuntimeError(token Token, message string) *RuntimeError {
-	return &RuntimeError{token: token, message: message}
-}
-
-func (e *RuntimeError) Error() string {
-	return fmt.Sprintf("[line %d] %s", e.token.Line, e.message)
 }
