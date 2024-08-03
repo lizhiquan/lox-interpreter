@@ -5,14 +5,25 @@ package lox
 //                | statement ;
 // varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 // statement      → exprStmt
+//                | forStmt
+//                | ifStmt
 //                | printStmt
+//                | whileStmt
 //                | block ;
-// block          → "{" declaration* "}" ;
 // exprStmt       → expression ";" ;
+// forStmt        → "for" "(" ( varDecl | exprStmt | ";" )
+//                  expression? ";"
+//                  expression? ")" statement ;
+// ifStmt         → "if" "(" expression ")" statement
+//                ( "else" statement )? ;
 // printStmt      → "print" expression ";" ;
+// whileStmt      → "while" "(" expression ")" statement ;
+// block          → "{" declaration* "}" ;
 // expression     → assignment ;
 // assignment     → IDENTIFIER "=" assignment
-//                | equality ;
+//                | logic_or ;
+// logic_or       → logic_and ( "or" logic_and )* ;
+// logic_and      → equality ( "and" equality )* ;
 // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term           → factor ( ( "-" | "+" ) factor )* ;
@@ -81,8 +92,20 @@ func (p *Parser) varDeclaration() (Stmt, error) {
 }
 
 func (p *Parser) statement() (Stmt, error) {
+	if p.match(FOR) {
+		return p.forStatement()
+	}
+
+	if p.match(IF) {
+		return p.ifStatement()
+	}
+
 	if p.match(PRINT) {
 		return p.printStatement()
+	}
+
+	if p.match(WHILE) {
+		return p.whileStatement()
 	}
 
 	if p.match(LEFT_BRACE) {
@@ -90,6 +113,100 @@ func (p *Parser) statement() (Stmt, error) {
 	}
 
 	return p.expressionStatement()
+}
+
+func (p *Parser) forStatement() (Stmt, error) {
+	if _, err := p.consume(LEFT_PAREN, "Expect '(' after 'for'."); err != nil {
+		return nil, err
+	}
+
+	var initializer Stmt
+	var err error
+	if p.match(SEMICOLON) {
+		initializer = nil
+	} else if p.match(VAR) {
+		initializer, err = p.varDeclaration()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		initializer, err = p.expressionStatement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var condition Expr
+	if !p.check(SEMICOLON) {
+		condition, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := p.consume(SEMICOLON, "Expect ';' after loop condition."); err != nil {
+		return nil, err
+	}
+
+	var increment Expr
+	if !p.check(RIGHT_PAREN) {
+		increment, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	if _, err := p.consume(RIGHT_PAREN, "Expect ')' after for clauses."); err != nil {
+		return nil, err
+	}
+
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if increment != nil {
+		body = NewBlockStmt([]Stmt{body, NewExprStmt(increment)})
+	}
+
+	if condition == nil {
+		condition = NewLiteralExpr(NewLiteral(true))
+	}
+	body = NewWhileStmt(condition, body)
+
+	if initializer != nil {
+		body = NewBlockStmt([]Stmt{initializer, body})
+	}
+
+	return body, nil
+}
+
+func (p *Parser) ifStatement() (Stmt, error) {
+	if _, err := p.consume(LEFT_PAREN, "Expect '(' after 'if'."); err != nil {
+		return nil, err
+	}
+
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := p.consume(RIGHT_PAREN, "Expect ')' after condition."); err != nil {
+		return nil, err
+	}
+
+	thenBranch, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	var elseBranch Stmt
+	if p.match(ELSE) {
+		elseBranch, err = p.statement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return NewIfStmt(condition, thenBranch, elseBranch), nil
 }
 
 func (p *Parser) printStatement() (Stmt, error) {
@@ -103,6 +220,28 @@ func (p *Parser) printStatement() (Stmt, error) {
 	}
 
 	return NewPrintStmt(value), nil
+}
+
+func (p *Parser) whileStatement() (Stmt, error) {
+	if _, err := p.consume(LEFT_PAREN, "Expect '(' after 'while'."); err != nil {
+		return nil, err
+	}
+
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := p.consume(RIGHT_PAREN, "Expect ')' after condition."); err != nil {
+		return nil, err
+	}
+
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewWhileStmt(condition, body), nil
 }
 
 func (p *Parser) block() (Stmt, error) {
@@ -142,7 +281,7 @@ func (p *Parser) expression() (Expr, error) {
 }
 
 func (p *Parser) assignment() (Expr, error) {
-	expr, err := p.equality()
+	expr, err := p.or()
 	if err != nil {
 		return nil, err
 	}
@@ -160,6 +299,44 @@ func (p *Parser) assignment() (Expr, error) {
 		}
 
 		return nil, NewParseError(equals, "Invalid assignment target.")
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) or() (Expr, error) {
+	expr, err := p.and()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(OR) {
+		operator := p.previous()
+		right, err := p.and()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = NewLogicalExpr(expr, operator, right)
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) and() (Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(AND) {
+		operator := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+
+		expr = NewLogicalExpr(expr, operator, right)
 	}
 
 	return expr, nil

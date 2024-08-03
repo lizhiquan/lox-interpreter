@@ -33,6 +33,7 @@ func (i *Interpreter) visitBinaryExpr(expr *BinaryExpr) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	right, err := i.evaluate(expr.Right)
 	if err != nil {
 		return nil, err
@@ -128,6 +129,38 @@ func (i *Interpreter) visitVariableExpr(expr *VariableExpr) (any, error) {
 	return i.environment.Get(expr.Name)
 }
 
+func (i *Interpreter) visitAssignExpr(expr *AssignExpr) (any, error) {
+	value, err := i.evaluate(expr.Value)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := i.environment.Assign(expr.Name, value); err != nil {
+		return nil, err
+	}
+
+	return value, nil
+}
+
+func (i *Interpreter) visitLogicalExpr(expr *LogicalExpr) (any, error) {
+	left, err := i.evaluate(expr.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	if expr.Operator.Type == OR {
+		if i.isTruthy(left) {
+			return left, nil
+		}
+	} else {
+		if !i.isTruthy(left) {
+			return left, nil
+		}
+	}
+
+	return i.evaluate(expr.Right)
+}
+
 func (i *Interpreter) evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
 }
@@ -135,8 +168,7 @@ func (i *Interpreter) evaluate(expr Expr) (any, error) {
 var _ stmtVisitor = (*Interpreter)(nil)
 
 func (i *Interpreter) visitExprStmt(stmt *ExprStmt) (any, error) {
-	_, err := i.evaluate(stmt.Expression)
-	return nil, err
+	return i.evaluate(stmt.Expression)
 }
 
 func (i *Interpreter) visitPrintStmt(stmt *PrintStmt) (any, error) {
@@ -167,22 +199,44 @@ func (i *Interpreter) visitVarDeclStmt(stmt *VarDeclStmt) (any, error) {
 	return nil, nil
 }
 
-func (i *Interpreter) visitAssignExpr(expr *AssignExpr) (any, error) {
-	value, err := i.evaluate(expr.Value)
+func (i *Interpreter) visitBlockStmt(stmt *BlockStmt) (any, error) {
+	return nil, i.executeBlock(stmt.Statements, NewEnvironmentWithEnclosing(i.environment))
+}
+
+func (i *Interpreter) visitIfStmt(stmt *IfStmt) (any, error) {
+	value, err := i.evaluate(stmt.Condition)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := i.environment.Assign(expr.Name, value); err != nil {
-		return nil, err
+	if i.isTruthy(value) {
+		return nil, i.execute(stmt.ThenBranch)
 	}
 
-	return value, nil
+	if stmt.ElseBranch != nil {
+		return nil, i.execute(stmt.ElseBranch)
+	}
+
+	return nil, nil
 }
 
-func (i *Interpreter) visitBlockStmt(stmt *BlockStmt) (any, error) {
-	err := i.executeBlock(stmt.Statements, NewEnvironmentWithEnclosing(i.environment))
-	return nil, err
+func (i *Interpreter) visitWhileStmt(stmt *WhileStmt) (any, error) {
+	for {
+		condition, err := i.evaluate(stmt.Condition)
+		if err != nil {
+			return nil, err
+		}
+
+		if !i.isTruthy(condition) {
+			break
+		}
+
+		if err := i.execute(stmt.Body); err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, nil
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {

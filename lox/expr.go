@@ -92,6 +92,20 @@ func (expr *AssignExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitAssignExpr(expr)
 }
 
+type LogicalExpr struct {
+	Left     Expr
+	Operator Token
+	Right    Expr
+}
+
+func NewLogicalExpr(left Expr, operator Token, right Expr) *LogicalExpr {
+	return &LogicalExpr{Left: left, Operator: operator, Right: right}
+}
+
+func (expr *LogicalExpr) accept(visitor exprVisitor) (any, error) {
+	return visitor.visitLogicalExpr(expr)
+}
+
 type exprVisitor interface {
 	visitBinaryExpr(expr *BinaryExpr) (any, error)
 	visitGroupingExpr(expr *GroupingExpr) (any, error)
@@ -99,4 +113,5 @@ type exprVisitor interface {
 	visitUnaryExpr(expr *UnaryExpr) (any, error)
 	visitVariableExpr(expr *VariableExpr) (any, error)
 	visitAssignExpr(expr *AssignExpr) (any, error)
+	visitLogicalExpr(expr *LogicalExpr) (any, error)
 }

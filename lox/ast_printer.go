@@ -40,6 +40,10 @@ func (p *AstPrinter) visitAssignExpr(expr *AssignExpr) (any, error) {
 	return p.parenthesize(expr.Name.Lexeme+" =", expr.Value), nil
 }
 
+func (p *AstPrinter) visitLogicalExpr(expr *LogicalExpr) (any, error) {
+	return p.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right), nil
+}
+
 func (p *AstPrinter) parenthesize(name string, exprs ...Expr) any {
 	var builder strings.Builder
 	builder.WriteString("(")
