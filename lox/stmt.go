@@ -80,6 +80,33 @@ func (s *WhileStmt) accept(visitor stmtVisitor) (any, error) {
 	return visitor.visitWhileStmt(s)
 }
 
+type FunctionDeclStmt struct {
+	Name       Token
+	Parameters []Token
+	Body       []Stmt
+}
+
+func NewFunctionDeclStmt(name Token, parameters []Token, body []Stmt) *FunctionDeclStmt {
+	return &FunctionDeclStmt{Name: name, Parameters: parameters, Body: body}
+}
+
+func (stmt *FunctionDeclStmt) accept(visitor stmtVisitor) (any, error) {
+	return visitor.visitFunctionDeclStmt(stmt)
+}
+
+type ReturnStmt struct {
+	Keyword Token
+	Value   Expr
+}
+
+func NewReturnStmt(keyword Token, value Expr) *ReturnStmt {
+	return &ReturnStmt{Keyword: keyword, Value: value}
+}
+
+func (s *ReturnStmt) accept(visitor stmtVisitor) (any, error) {
+	return visitor.visitReturnStmt(s)
+}
+
 type stmtVisitor interface {
 	visitExprStmt(stmt *ExprStmt) (any, error)
 	visitPrintStmt(stmt *PrintStmt) (any, error)
@@ -87,4 +114,6 @@ type stmtVisitor interface {
 	visitBlockStmt(stmt *BlockStmt) (any, error)
 	visitIfStmt(stmt *IfStmt) (any, error)
 	visitWhileStmt(stmt *WhileStmt) (any, error)
+	visitFunctionDeclStmt(stmt *FunctionDeclStmt) (any, error)
+	visitReturnStmt(stmt *ReturnStmt) (any, error)
 }

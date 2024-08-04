@@ -106,6 +106,20 @@ func (expr *LogicalExpr) accept(visitor exprVisitor) (any, error) {
 	return visitor.visitLogicalExpr(expr)
 }
 
+type CallExpr struct {
+	Callee    Expr
+	Paren     Token
+	Arguments []Expr
+}
+
+func NewCallExpr(callee Expr, paren Token, arguments []Expr) *CallExpr {
+	return &CallExpr{Callee: callee, Paren: paren, Arguments: arguments}
+}
+
+func (expr *CallExpr) accept(visitor exprVisitor) (any, error) {
+	return visitor.visitCallExpr(expr)
+}
+
 type exprVisitor interface {
 	visitBinaryExpr(expr *BinaryExpr) (any, error)
 	visitGroupingExpr(expr *GroupingExpr) (any, error)
@@ -114,4 +128,5 @@ type exprVisitor interface {
 	visitVariableExpr(expr *VariableExpr) (any, error)
 	visitAssignExpr(expr *AssignExpr) (any, error)
 	visitLogicalExpr(expr *LogicalExpr) (any, error)
+	visitCallExpr(expr *CallExpr) (any, error)
 }

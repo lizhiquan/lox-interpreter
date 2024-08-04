@@ -31,3 +31,15 @@ func NewRuntimeError(token Token, message string) *RuntimeError {
 func (e *RuntimeError) Error() string {
 	return fmt.Sprintf("[line %d] %s", e.token.Line, e.message)
 }
+
+type ReturnError struct {
+	Value any
+}
+
+func NewReturnError(value any) *ReturnError {
+	return &ReturnError{Value: value}
+}
+
+func (e *ReturnError) Error() string {
+	return fmt.Sprintf("return %s", e.Value)
+}

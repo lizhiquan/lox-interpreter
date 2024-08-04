@@ -5,12 +5,17 @@ import (
 )
 
 type Interpreter struct {
+	globals     *Environment
 	environment *Environment
 }
 
 func NewInterpreter() *Interpreter {
+	globals := NewEnvironment()
+	globals.Define("clock", Clock{})
+
 	return &Interpreter{
-		environment: NewEnvironment(),
+		globals:     globals,
+		environment: globals,
 	}
 }
 
@@ -161,6 +166,34 @@ func (i *Interpreter) visitLogicalExpr(expr *LogicalExpr) (any, error) {
 	return i.evaluate(expr.Right)
 }
 
+func (i *Interpreter) visitCallExpr(expr *CallExpr) (any, error) {
+	callee, err := i.evaluate(expr.Callee)
+	if err != nil {
+		return nil, err
+	}
+
+	callable, ok := callee.(Callable)
+	if !ok {
+		return nil, NewRuntimeError(expr.Paren, "Can only call functions and classes.")
+	}
+
+	if len(expr.Arguments) != callable.Arity() {
+		return nil, NewRuntimeError(expr.Paren, fmt.Sprintf("Expected %d arguments but got %d.", callable.Arity(), len(expr.Arguments)))
+	}
+
+	arguments := make([]any, len(expr.Arguments))
+	for idx, arg := range expr.Arguments {
+		val, err := i.evaluate(arg)
+		if err != nil {
+			return nil, err
+		}
+
+		arguments[idx] = val
+	}
+
+	return callable.Call(i, arguments)
+}
+
 func (i *Interpreter) evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
 }
@@ -237,6 +270,25 @@ func (i *Interpreter) visitWhileStmt(stmt *WhileStmt) (any, error) {
 	}
 
 	return nil, nil
+}
+
+func (i *Interpreter) visitFunctionDeclStmt(stmt *FunctionDeclStmt) (any, error) {
+	function := NewFunction(stmt, i.environment)
+	i.environment.Define(stmt.Name.Lexeme, function)
+	return nil, nil
+}
+
+func (i *Interpreter) visitReturnStmt(stmt *ReturnStmt) (any, error) {
+	var value any
+	if stmt.Value != nil {
+		var err error
+		value, err = i.evaluate(stmt.Value)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, NewReturnError(value)
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {

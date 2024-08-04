@@ -44,6 +44,10 @@ func (p *AstPrinter) visitLogicalExpr(expr *LogicalExpr) (any, error) {
 	return p.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right), nil
 }
 
+func (p *AstPrinter) visitCallExpr(expr *CallExpr) (any, error) {
+	return p.parenthesize("call", append([]Expr{expr.Callee}, expr.Arguments...)...), nil
+}
+
 func (p *AstPrinter) parenthesize(name string, exprs ...Expr) any {
 	var builder strings.Builder
 	builder.WriteString("(")
