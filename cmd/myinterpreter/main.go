@@ -63,8 +63,14 @@ func main() {
 		}
 
 		interpreter := lox.NewInterpreter()
-		errs := interpreter.Interpret(stmts)
-		if len(errs) > 0 {
+		resolver := lox.NewResolver(interpreter)
+
+		if err := resolver.Resolve(stmts); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(66)
+		}
+
+		if errs := interpreter.Interpret(stmts); len(errs) > 0 {
 			for _, err := range errs {
 				fmt.Fprintln(os.Stderr, err)
 			}

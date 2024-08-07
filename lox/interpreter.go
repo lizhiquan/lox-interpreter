@@ -7,6 +7,7 @@ import (
 type Interpreter struct {
 	globals     *Environment
 	environment *Environment
+	locals      map[Expr]int
 }
 
 func NewInterpreter() *Interpreter {
@@ -16,6 +17,7 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{
 		globals:     globals,
 		environment: globals,
+		locals:      make(map[Expr]int),
 	}
 }
 
@@ -131,7 +133,15 @@ func (i *Interpreter) visitUnaryExpr(expr *UnaryExpr) (any, error) {
 }
 
 func (i *Interpreter) visitVariableExpr(expr *VariableExpr) (any, error) {
-	return i.environment.Get(expr.Name)
+	return i.lookUpVariable(expr.Name, expr)
+}
+
+func (i *Interpreter) lookUpVariable(name Token, expr Expr) (any, error) {
+	if distance, ok := i.locals[expr]; ok {
+		return i.environment.GetAt(distance, name.Lexeme), nil
+	}
+
+	return i.globals.Get(name)
 }
 
 func (i *Interpreter) visitAssignExpr(expr *AssignExpr) (any, error) {
@@ -140,8 +150,12 @@ func (i *Interpreter) visitAssignExpr(expr *AssignExpr) (any, error) {
 		return nil, err
 	}
 
-	if err := i.environment.Assign(expr.Name, value); err != nil {
-		return nil, err
+	if distance, ok := i.locals[expr]; ok {
+		i.environment.AssignAt(distance, expr.Name, value)
+	} else {
+		if err := i.globals.Assign(expr.Name, value); err != nil {
+			return nil, err
+		}
 	}
 
 	return value, nil
@@ -294,6 +308,10 @@ func (i *Interpreter) visitReturnStmt(stmt *ReturnStmt) (any, error) {
 func (i *Interpreter) execute(stmt Stmt) error {
 	_, err := stmt.accept(i)
 	return err
+}
+
+func (i *Interpreter) resolve(expr Expr, depth int) {
+	i.locals[expr] = depth
 }
 
 func (i *Interpreter) executeBlock(statements []Stmt, environment *Environment) error {

@@ -41,5 +41,5 @@ func NewReturnError(value any) *ReturnError {
 }
 
 func (e *ReturnError) Error() string {
-	return fmt.Sprintf("return %s", e.Value)
+	return fmt.Sprintf("return %v", e.Value)
 }
