@@ -2,8 +2,10 @@ package bytecode
 
 import "fmt"
 
+// opcodes
 const (
 	OP_CONSTANT byte = iota
+	OP_NEGATE
 	OP_RETURN
 )
 
@@ -46,6 +48,8 @@ func (c *Chunk) disassembleInstruction(offset int) int {
 	switch instruction {
 	case OP_CONSTANT:
 		return c.constantInstruction("OP_CONSTANT", offset)
+	case OP_NEGATE:
+		return simpleInstruction("OP_NEGATE", offset)
 	case OP_RETURN:
 		return simpleInstruction("OP_RETURN", offset)
 	default:

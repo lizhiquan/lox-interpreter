@@ -47,6 +47,9 @@ func (vm *VM) Run() error {
 			constant := vm.readConstant()
 			vm.push(constant)
 
+		case OP_NEGATE:
+			vm.push(-vm.pop())
+
 		case OP_RETURN:
 			fmt.Println(vm.pop())
 			return nil

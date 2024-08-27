@@ -7,6 +7,7 @@ func TestVM(t *testing.T) {
 	constant := c.addConstant(1.2)
 	c.write(OP_CONSTANT, 123)
 	c.write(byte(constant), 123)
+	c.write(OP_NEGATE, 123)
 	c.write(OP_RETURN, 123)
 
 	vm := NewVM(&c)
