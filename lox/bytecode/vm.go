@@ -47,6 +47,18 @@ func (vm *VM) Run() error {
 			constant := vm.readConstant()
 			vm.push(constant)
 
+		case OP_ADD:
+			vm.binaryOp("+")
+
+		case OP_SUBTRACT:
+			vm.binaryOp("-")
+
+		case OP_MULTIPLY:
+			vm.binaryOp("*")
+
+		case OP_DIVIDE:
+			vm.binaryOp("/")
+
 		case OP_NEGATE:
 			vm.push(-vm.pop())
 
@@ -83,4 +95,21 @@ func (vm *VM) pop() Value {
 
 	vm.stackTop--
 	return vm.stack[vm.stackTop]
+}
+
+func (vm *VM) binaryOp(operator string) {
+	b := vm.pop()
+	a := vm.pop()
+	switch operator {
+	case "+":
+		vm.push(a + b)
+	case "-":
+		vm.push(a - b)
+	case "*":
+		vm.push(a * b)
+	case "/":
+		vm.push(a / b)
+	default:
+		panic("unknown operator")
+	}
 }
