@@ -28,80 +28,73 @@ func NewScanner(source string) *Scanner {
 
 func (s *Scanner) ScanTokens() ([]Token, []error) {
 	for !s.isAtEnd() {
-		s.start = s.current
-		if err := s.scanToken(); err != nil {
+		token, err := s.scanToken()
+		if err != nil {
 			s.errs = append(s.errs, err)
 		}
+
+		s.tokens = append(s.tokens, token)
 	}
-	s.tokens = append(s.tokens, Token{Type: EOF, Line: s.line})
+
 	return s.tokens, s.errs
 }
 
-func (s *Scanner) isAtEnd() bool {
-	return s.current >= len(s.source)
-}
+func (s *Scanner) scanToken() (Token, error) {
+	s.skipWhitespace()
+	s.start = s.current
 
-func (s *Scanner) scanToken() error {
+	if s.isAtEnd() {
+		return s.makeToken(EOF), nil
+	}
+
 	r := s.advance()
 	switch r {
 	case '(':
-		s.addToken(LEFT_PAREN)
+		return s.makeToken(LEFT_PAREN), nil
 	case ')':
-		s.addToken(RIGHT_PAREN)
+		return s.makeToken(RIGHT_PAREN), nil
 	case '{':
-		s.addToken(LEFT_BRACE)
+		return s.makeToken(LEFT_BRACE), nil
 	case '}':
-		s.addToken(RIGHT_BRACE)
+		return s.makeToken(RIGHT_BRACE), nil
 	case ',':
-		s.addToken(COMMA)
+		return s.makeToken(COMMA), nil
 	case '.':
-		s.addToken(DOT)
+		return s.makeToken(DOT), nil
 	case '-':
-		s.addToken(MINUS)
+		return s.makeToken(MINUS), nil
 	case '+':
-		s.addToken(PLUS)
+		return s.makeToken(PLUS), nil
 	case ';':
-		s.addToken(SEMICOLON)
+		return s.makeToken(SEMICOLON), nil
 	case '*':
-		s.addToken(STAR)
+		return s.makeToken(STAR), nil
 	case '!':
 		if s.match('=') {
-			s.addToken(BANG_EQUAL)
+			return s.makeToken(BANG_EQUAL), nil
 		} else {
-			s.addToken(BANG)
+			return s.makeToken(BANG), nil
 		}
 	case '=':
 		if s.match('=') {
-			s.addToken(EQUAL_EQUAL)
+			return s.makeToken(EQUAL_EQUAL), nil
 		} else {
-			s.addToken(EQUAL)
+			return s.makeToken(EQUAL), nil
 		}
 	case '<':
 		if s.match('=') {
-			s.addToken(LESS_EQUAL)
+			return s.makeToken(LESS_EQUAL), nil
 		} else {
-			s.addToken(LESS)
+			return s.makeToken(LESS), nil
 		}
 	case '>':
 		if s.match('=') {
-			s.addToken(GREATER_EQUAL)
+			return s.makeToken(GREATER_EQUAL), nil
 		} else {
-			s.addToken(GREATER)
+			return s.makeToken(GREATER), nil
 		}
 	case '/':
-		if s.match('/') {
-			// skip over comments
-			for s.peek() != '\n' && !s.isAtEnd() {
-				s.advance()
-			}
-		} else {
-			s.addToken(SLASH)
-		}
-	case ' ', '\r', '\t':
-		// ignore whitespace
-		break
-	case '\n':
-		s.line++
+		return s.makeToken(SLASH), nil
 	case '"':
 		return s.string()
 	default:
@@ -109,13 +102,39 @@ func (s *Scanner) scanToken() error {
 			return s.number()
 		}
 		if s.isAlpha(r) {
-			s.identifier()
-			break
+			return s.identifier(), nil
 		}
-		return fmt.Errorf("[line %d] Error: Unexpected character: %s", s.line, string(r))
-	}
 
-	return nil
+		return Token{}, fmt.Errorf("[line %d] Error: Unexpected character: %s", s.line, string(r))
+	}
+}
+
+func (s *Scanner) isAtEnd() bool {
+	return s.current >= len(s.source)
+}
+
+func (s *Scanner) skipWhitespace() {
+	for {
+		r := s.peek()
+		switch r {
+		case ' ', '\r', '\t':
+			s.advance()
+		case '\n':
+			s.line++
+			s.advance()
+		case '/':
+			if s.match('/') {
+				// A comment goes until the end of the line.
+				for s.peek() != '\n' && !s.isAtEnd() {
+					s.advance()
+				}
+			} else {
+				return
+			}
+		default:
+			return
+		}
+	}
 }
 
 var keywords = map[string]TokenType{
@@ -137,7 +156,7 @@ var keywords = map[string]TokenType{
 	"while":  WHILE,
 }
 
-func (s *Scanner) identifier() {
+func (s *Scanner) identifier() Token {
 	for s.isAlphaNumeric(s.peek()) {
 		s.advance()
 	}
@@ -147,10 +166,10 @@ func (s *Scanner) identifier() {
 	if !ok {
 		tokenType = IDENTIFIER
 	}
-	s.addToken(tokenType)
+	return s.makeToken(tokenType)
 }
 
-func (s *Scanner) number() error {
+func (s *Scanner) number() (Token, error) {
 	for unicode.IsDigit(s.peek()) {
 		s.advance()
 	}
@@ -167,14 +186,14 @@ func (s *Scanner) number() error {
 
 	value, err := strconv.ParseFloat(s.source[s.start:s.current], 64)
 	if err != nil {
-		return fmt.Errorf("[line %d] Error: Failed to parse number: %s", s.line, s.source[s.start:s.current])
+		return Token{}, fmt.Errorf("[line %d] Error: Failed to parse number: %s", s.line, s.source[s.start:s.current])
 	}
 
-	s.addTokenLiteral(NUMBER, value)
-	return nil
+	token := s.makeTokenLiteral(NUMBER, value)
+	return token, nil
 }
 
-func (s *Scanner) string() error {
+func (s *Scanner) string() (Token, error) {
 	for s.peek() != '"' && !s.isAtEnd() {
 		if s.peek() == '\n' {
 			s.line++
@@ -183,15 +202,15 @@ func (s *Scanner) string() error {
 	}
 
 	if s.isAtEnd() {
-		return fmt.Errorf("[line %d] Error: Unterminated string.", s.line)
+		return Token{}, fmt.Errorf("[line %d] Error: Unterminated string.", s.line)
 	}
 
 	// closing "
 	s.advance()
 
 	value := s.source[s.start+1 : s.current-1]
-	s.addTokenLiteral(STRING, value)
-	return nil
+	token := s.makeTokenLiteral(STRING, value)
+	return token, nil
 }
 
 func (s *Scanner) peek() rune {
@@ -240,16 +259,15 @@ func (s *Scanner) advance() rune {
 	return r
 }
 
-func (s *Scanner) addToken(tokenType TokenType) {
-	s.addTokenLiteral(tokenType, nil)
+func (s *Scanner) makeToken(tokenType TokenType) Token {
+	return s.makeTokenLiteral(tokenType, nil)
 }
 
-func (s *Scanner) addTokenLiteral(tokenType TokenType, literal any) {
-	token := Token{
+func (s *Scanner) makeTokenLiteral(tokenType TokenType, literal any) Token {
+	return Token{
 		Type:    tokenType,
 		Lexeme:  s.source[s.start:s.current],
 		Literal: NewLiteral(literal),
 		Line:    s.line,
 	}
-	s.tokens = append(s.tokens, token)
 }
