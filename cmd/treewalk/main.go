@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/codecrafters-io/interpreter-starter-go/lox"
+	"interpreter/lox"
 )
 
 func main() {

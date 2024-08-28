@@ -1,4 +1,4 @@
-package bytecode
+package lox
 
 import (
 	"errors"
@@ -28,6 +28,11 @@ func NewVM(chunk *Chunk) *VM {
 		DebugTraceExecution: false,
 		stackTop:            0,
 	}
+}
+
+func Interpret(source string) error {
+	// compile(source)
+	return nil
 }
 
 func (vm *VM) Run() error {
