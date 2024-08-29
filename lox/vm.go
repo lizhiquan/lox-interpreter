@@ -31,11 +31,16 @@ func NewVM(chunk *Chunk) *VM {
 }
 
 func Interpret(source string) error {
-	// compile(source)
-	return nil
+	var chunk Chunk
+	if !compile(source, &chunk) {
+		return ErrInterpretCompile
+	}
+
+	vm := NewVM(&chunk)
+	return vm.run()
 }
 
-func (vm *VM) Run() error {
+func (vm *VM) run() error {
 	for {
 		if vm.DebugTraceExecution {
 			fmt.Print("          ")

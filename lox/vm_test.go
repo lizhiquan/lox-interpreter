@@ -1,6 +1,10 @@
 package lox
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestVM(t *testing.T) {
 	var c Chunk
@@ -24,5 +28,11 @@ func TestVM(t *testing.T) {
 
 	vm := NewVM(&c)
 	vm.DebugTraceExecution = true
-	_ = vm.Run()
+	_ = vm.run()
+}
+
+func TestInterpret(t *testing.T) {
+	t.Setenv("DEBUG_PRINT_CODE", "1")
+	err := Interpret("(-1 + 2) * 3 - -4")
+	assert.NoError(t, err)
 }
