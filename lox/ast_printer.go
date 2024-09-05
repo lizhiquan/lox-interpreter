@@ -1,14 +1,15 @@
 package lox
 
 import (
+	"fmt"
 	"strings"
 )
 
 type AstPrinter struct{}
 
-func (p *AstPrinter) Print(expr Expr) string {
+func (p *AstPrinter) Print(expr Expr) {
 	s, _ := expr.accept(p)
-	return s.(string)
+	fmt.Println(s.(string))
 }
 
 var _ exprVisitor = (*AstPrinter)(nil)

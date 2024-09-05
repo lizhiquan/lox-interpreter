@@ -25,16 +25,14 @@ func (i *Interpreter) Evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
 }
 
-func (i *Interpreter) Interpret(statements []Stmt) []error {
-	var errs []error
-
+func (i *Interpreter) Interpret(statements []Stmt) error {
 	for _, stmt := range statements {
 		if err := i.execute(stmt); err != nil {
-			errs = append(errs, err)
+			return err
 		}
 	}
 
-	return errs
+	return nil
 }
 
 var _ exprVisitor = (*Interpreter)(nil)

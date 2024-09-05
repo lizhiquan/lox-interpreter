@@ -51,8 +51,8 @@ func main() {
 			os.Exit(65)
 		}
 
-		printer := lox.AstPrinter{}
-		fmt.Println(printer.Print(expr))
+		var printer lox.AstPrinter
+		printer.Print(expr)
 
 	case "evaluate":
 		parser := lox.NewParser(tokens)
@@ -91,10 +91,8 @@ func main() {
 			os.Exit(66)
 		}
 
-		if errs := interpreter.Interpret(stmts); len(errs) > 0 {
-			for _, err := range errs {
-				fmt.Fprintln(os.Stderr, err)
-			}
+		if err := interpreter.Interpret(stmts); err != nil {
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(70)
 		}
 	}
