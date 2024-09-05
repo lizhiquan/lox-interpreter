@@ -21,6 +21,10 @@ func NewInterpreter() *Interpreter {
 	}
 }
 
+func (i *Interpreter) Evaluate(expr Expr) (any, error) {
+	return expr.accept(i)
+}
+
 func (i *Interpreter) Interpret(statements []Stmt) []error {
 	var errs []error
 
@@ -36,12 +40,12 @@ func (i *Interpreter) Interpret(statements []Stmt) []error {
 var _ exprVisitor = (*Interpreter)(nil)
 
 func (i *Interpreter) visitBinaryExpr(expr *BinaryExpr) (any, error) {
-	left, err := i.evaluate(expr.Left)
+	left, err := i.Evaluate(expr.Left)
 	if err != nil {
 		return nil, err
 	}
 
-	right, err := i.evaluate(expr.Right)
+	right, err := i.Evaluate(expr.Right)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +110,7 @@ func (i *Interpreter) visitBinaryExpr(expr *BinaryExpr) (any, error) {
 }
 
 func (i *Interpreter) visitGroupingExpr(expr *GroupingExpr) (any, error) {
-	return i.evaluate(expr.Expression)
+	return i.Evaluate(expr.Expression)
 }
 
 func (i *Interpreter) visitLiteralExpr(expr *LiteralExpr) (any, error) {
@@ -114,7 +118,7 @@ func (i *Interpreter) visitLiteralExpr(expr *LiteralExpr) (any, error) {
 }
 
 func (i *Interpreter) visitUnaryExpr(expr *UnaryExpr) (any, error) {
-	right, err := i.evaluate(expr.Right)
+	right, err := i.Evaluate(expr.Right)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +149,7 @@ func (i *Interpreter) lookUpVariable(name Token, expr Expr) (any, error) {
 }
 
 func (i *Interpreter) visitAssignExpr(expr *AssignExpr) (any, error) {
-	value, err := i.evaluate(expr.Value)
+	value, err := i.Evaluate(expr.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +166,7 @@ func (i *Interpreter) visitAssignExpr(expr *AssignExpr) (any, error) {
 }
 
 func (i *Interpreter) visitLogicalExpr(expr *LogicalExpr) (any, error) {
-	left, err := i.evaluate(expr.Left)
+	left, err := i.Evaluate(expr.Left)
 	if err != nil {
 		return nil, err
 	}
@@ -177,11 +181,11 @@ func (i *Interpreter) visitLogicalExpr(expr *LogicalExpr) (any, error) {
 		}
 	}
 
-	return i.evaluate(expr.Right)
+	return i.Evaluate(expr.Right)
 }
 
 func (i *Interpreter) visitCallExpr(expr *CallExpr) (any, error) {
-	callee, err := i.evaluate(expr.Callee)
+	callee, err := i.Evaluate(expr.Callee)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +201,7 @@ func (i *Interpreter) visitCallExpr(expr *CallExpr) (any, error) {
 
 	arguments := make([]any, len(expr.Arguments))
 	for idx, arg := range expr.Arguments {
-		val, err := i.evaluate(arg)
+		val, err := i.Evaluate(arg)
 		if err != nil {
 			return nil, err
 		}
@@ -208,18 +212,14 @@ func (i *Interpreter) visitCallExpr(expr *CallExpr) (any, error) {
 	return callable.Call(i, arguments)
 }
 
-func (i *Interpreter) evaluate(expr Expr) (any, error) {
-	return expr.accept(i)
-}
-
 var _ stmtVisitor = (*Interpreter)(nil)
 
 func (i *Interpreter) visitExprStmt(stmt *ExprStmt) (any, error) {
-	return i.evaluate(stmt.Expression)
+	return i.Evaluate(stmt.Expression)
 }
 
 func (i *Interpreter) visitPrintStmt(stmt *PrintStmt) (any, error) {
-	val, err := i.evaluate(stmt.Expression)
+	val, err := i.Evaluate(stmt.Expression)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (i *Interpreter) visitVarDeclStmt(stmt *VarDeclStmt) (any, error) {
 	var value any
 	if stmt.Initializer != nil {
 		var err error
-		value, err = i.evaluate(stmt.Initializer)
+		value, err = i.Evaluate(stmt.Initializer)
 		if err != nil {
 			return nil, err
 		}
@@ -251,7 +251,7 @@ func (i *Interpreter) visitBlockStmt(stmt *BlockStmt) (any, error) {
 }
 
 func (i *Interpreter) visitIfStmt(stmt *IfStmt) (any, error) {
-	value, err := i.evaluate(stmt.Condition)
+	value, err := i.Evaluate(stmt.Condition)
 	if err != nil {
 		return nil, err
 	}
@@ -269,7 +269,7 @@ func (i *Interpreter) visitIfStmt(stmt *IfStmt) (any, error) {
 
 func (i *Interpreter) visitWhileStmt(stmt *WhileStmt) (any, error) {
 	for {
-		condition, err := i.evaluate(stmt.Condition)
+		condition, err := i.Evaluate(stmt.Condition)
 		if err != nil {
 			return nil, err
 		}
@@ -296,7 +296,7 @@ func (i *Interpreter) visitReturnStmt(stmt *ReturnStmt) (any, error) {
 	var value any
 	if stmt.Value != nil {
 		var err error
-		value, err = i.evaluate(stmt.Value)
+		value, err = i.Evaluate(stmt.Value)
 		if err != nil {
 			return nil, err
 		}

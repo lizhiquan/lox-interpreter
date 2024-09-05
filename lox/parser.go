@@ -69,6 +69,10 @@ func (p *Parser) Parse() ([]Stmt, error) {
 	return statements, nil
 }
 
+func (p *Parser) ParseExpr() (Expr, error) {
+	return p.expression()
+}
+
 func (p *Parser) declaration() (Stmt, error) {
 	if p.match(FUN) {
 		return p.function("function")

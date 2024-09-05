@@ -15,7 +15,7 @@ func main() {
 
 	command := os.Args[1]
 
-	if command != "tokenize" && command != "parse" && command != "evaluate" {
+	if command != "tokenize" && command != "parse" && command != "evaluate" && command != "run" {
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n", command)
 		os.Exit(1)
 	}
@@ -43,18 +43,39 @@ func main() {
 			os.Exit(65)
 		}
 
-	// case "parse":
-	// 	parser := lox.NewParser(tokens)
-	// 	expr, err := parser.Parse()
-	// 	if err != nil {
-	// 		fmt.Fprintln(os.Stderr, err)
-	// 		os.Exit(65)
-	// 	}
+	case "parse":
+		parser := lox.NewParser(tokens)
+		expr, err := parser.ParseExpr()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(65)
+		}
 
-	// 	printer := lox.AstPrinter{}
-	// 	fmt.Println(printer.Print(expr))
+		printer := lox.AstPrinter{}
+		fmt.Println(printer.Print(expr))
 
 	case "evaluate":
+		parser := lox.NewParser(tokens)
+		expr, err := parser.ParseExpr()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(65)
+		}
+
+		interpreter := lox.NewInterpreter()
+		val, err := interpreter.Evaluate(expr)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(70)
+		}
+
+		if val == nil {
+			fmt.Println("nil")
+		} else {
+			fmt.Println(val)
+		}
+
+	case "run":
 		parser := lox.NewParser(tokens)
 		stmts, err := parser.Parse()
 		if err != nil {
